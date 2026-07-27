@@ -1,6 +1,6 @@
 const env = require('../config/env');
 
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
 const geminiEnabled = !!env.GEMINI_API_KEY;
 
 exports.testGemini = async (req, res) => {

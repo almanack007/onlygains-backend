@@ -3,7 +3,7 @@ const db = require('../config/db');
 // In-memory fallback for offline mode
 const mockProCustomers = new Map();
 
-function buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate) {
+function buildCheckoutHtml(userId, qrCodeUrl, gpayUrl, isAlreadyPro, expiryDate) {
   const css = `
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -133,6 +133,84 @@ function buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate) {
       border-top: 1px solid rgba(255,255,255,0.05);
       margin: 0 0 22px 0;
     }
+    .pay-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .gpay-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #1a1a2e;
+      border: 1px solid rgba(66, 133, 244, 0.3);
+      border-radius: 14px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: #ffffff;
+    }
+    .gpay-btn:hover {
+      background: #1e1e38;
+      border-color: rgba(66, 133, 244, 0.6);
+      box-shadow: 0 0 16px rgba(66, 133, 244, 0.15);
+      transform: translateY(-1px);
+    }
+    .gpay-btn:active { transform: translateY(0); }
+    .gpay-logo {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .gpay-logo-g { color: #4285F4; }
+    .gpay-logo-o1 { color: #EA4335; }
+    .gpay-logo-o2 { color: #FBBC04; }
+    .gpay-logo-g2 { color: #34A853; }
+    .gpay-logo-l { color: #4285F4; }
+    .gpay-logo-e { color: #EA4335; }
+    .gpay-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e8e8f0;
+      letter-spacing: 0.2px;
+    }
+    .gpay-chip {
+      margin-left: auto;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #4285F4;
+      background: rgba(66, 133, 244, 0.1);
+      border: 1px solid rgba(66, 133, 244, 0.2);
+      padding: 3px 7px;
+      border-radius: 6px;
+    }
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      color: #3a3a42;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.05);
+    }
     .form-group {
       text-align: left;
       margin-bottom: 16px;
@@ -261,11 +339,11 @@ function buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate) {
         <div class="price-term">per month</div>
       </div>
 
-      <p class="info-text">Scan with GPay, PhonePe, or Paytm to pay:</p>
+      <p class="info-text">Scan the QR code or tap Google Pay to make the &#8377;120 payment:</p>
 
       <div class="qr-container">
-        <img class="qr-img" src="${qrCodeUrl}" alt="UPI QR Code" onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='block';">
-        <div id="qrFallback" style="display:none; width:200px; height:200px; display:none; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#6b6b72; font-size:11px;">
+        <img class="qr-img" src="${qrCodeUrl}" alt="UPI QR Code" onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='flex';">
+        <div id="qrFallback" style="display:none; width:200px; height:200px; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#6b6b72; font-size:11px;">
           <div style="font-size:32px;">&#128247;</div>
           Use UPI ID below
         </div>
@@ -279,7 +357,17 @@ function buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate) {
         <button type="button" class="copy-btn" id="copyBtn">Copy</button>
       </div>
 
-      <hr class="divider">
+      <div class="pay-methods">
+        <a id="gpayBtn" class="gpay-btn" href="${gpayUrl}" onclick="return handleGpay(event)">
+          <div class="gpay-logo">
+            <span class="gpay-logo-g">G</span><span class="gpay-logo-o1">o</span><span class="gpay-logo-o2">o</span><span class="gpay-logo-g2">g</span><span class="gpay-logo-l">l</span><span class="gpay-logo-e">e</span>
+          </div>
+          <div class="gpay-label">Pay with Google Pay</div>
+          <span class="gpay-chip">App</span>
+        </a>
+      </div>
+
+      <div class="or-divider">After payment, enter ref number below</div>
 
       <div class="error-banner" id="errorBanner"></div>
 
@@ -351,6 +439,37 @@ function buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate) {
           submitBtn.textContent = 'Activate PRO \u2192';
         }
       });
+
+      function handleGpay(e) {
+        var ua = navigator.userAgent || '';
+        var isAndroid = /Android/i.test(ua);
+        var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+        if (isAndroid) {
+          // Try tez:// deep link first, fall back to Android intent
+          var started = false;
+          var timeout = setTimeout(function() {
+            if (!started) {
+              // Fallback: Android intent URI that opens Play Store if GPay not installed
+              window.location = 'intent://upi/pay?pa=abc%40okaxis&pn=OnlyGains%20PRO&am=120.00&cu=INR#Intent;scheme=tez;package=com.google.android.apps.nbu.paisa.user;end';
+            }
+          }, 800);
+          document.addEventListener('visibilitychange', function() { started = true; clearTimeout(timeout); }, { once: true });
+          return true; // allow href=tez:// to fire
+        } else if (isIOS) {
+          // iOS GPay doesn't support UPI — open generic UPI link instead
+          window.location = '${gpayUrl}'.replace('tez://', 'upi://');
+          e.preventDefault();
+          return false;
+        } else {
+          // Desktop — show a tooltip
+          e.preventDefault();
+          var btn = document.getElementById('gpayBtn');
+          btn.querySelector('.gpay-label').textContent = 'Open on your phone';
+          setTimeout(function() { btn.querySelector('.gpay-label').textContent = 'Pay with Google Pay'; }, 2000);
+          return false;
+        }
+      }
     </script>
   `;
 
@@ -407,10 +526,11 @@ exports.getPayPage = async (req, res) => {
 
   const upiId = 'abc@okaxis';
   const upiUrl = 'upi://pay?pa=' + upiId + '&pn=OnlyGains%20PRO&am=120.00&cu=INR&tn=OG-' + userId.substring(0, 8);
+  const gpayUrl = 'tez://upi/pay?pa=' + upiId + '&pn=OnlyGains%20PRO&am=120.00&cu=INR&tn=OG-' + userId.substring(0, 8);
   const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&color=000000&bgcolor=ffffff&data=' + encodeURIComponent(upiUrl);
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(buildCheckoutHtml(userId, qrCodeUrl, isAlreadyPro, expiryDate));
+  res.send(buildCheckoutHtml(userId, qrCodeUrl, gpayUrl, isAlreadyPro, expiryDate));
 };
 
 exports.verifyPayment = async (req, res) => {

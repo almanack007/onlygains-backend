@@ -38,6 +38,16 @@ async function initDb() {
 
     CREATE INDEX IF NOT EXISTS fittrack_daily_logs_user_date_idx
     ON fittrack_daily_logs (user_id, log_date DESC);
+
+    CREATE TABLE IF NOT EXISTS fittrack_pro_customers (
+      user_id TEXT PRIMARY KEY REFERENCES fittrack_profiles(user_id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'active',
+      utr_number TEXT UNIQUE NOT NULL,
+      amount NUMERIC(10,2) NOT NULL DEFAULT 120.00,
+      subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 }
 

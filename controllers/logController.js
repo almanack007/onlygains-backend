@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const payController = require('./payController');
 
 function toWeeklyData(rows) {
   const proteins = {};
@@ -37,12 +38,21 @@ exports.getDailyLog = async (req, res) => {
       [userId, date]
     );
     const logRow = logResult.rows[0];
+
+    // Check if user is a premium PRO subscriber
+    const proResult = await client.query(
+      "SELECT expires_at FROM fittrack_pro_customers WHERE user_id = $1 AND status = 'active' AND expires_at > NOW()",
+      [userId]
+    );
+    const isPro = proResult.rows.length > 0;
+
     res.json({
       profile: profileResult.rows[0]?.profile || null,
       log: logRow ? logRow.food_log : null,
       waterIntake: logRow ? logRow.water_intake : null,
       totals: logRow ? logRow.totals : null,
-      weeklyData: toWeeklyData(weeklyResult.rows)
+      weeklyData: toWeeklyData(weeklyResult.rows),
+      isPro: isPro
     });
   } finally {
     client.release();

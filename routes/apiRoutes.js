@@ -6,6 +6,7 @@ const systemController = require('../controllers/systemController');
 const scanController = require('../controllers/scanController');
 const logController = require('../controllers/logController');
 const userController = require('../controllers/userController');
+const payController = require('../controllers/payController');
 
 // System endpoints
 router.get('/health', systemController.getHealth);
@@ -19,6 +20,10 @@ router.post('/coach/chat', scanController.chatCoach);
 // Daily Logs (Requires DB)
 router.get('/daily/:userId/:date', db.requireDb, logController.getDailyLog);
 router.put('/daily/:userId/:date', db.requireDb, logController.updateDailyLog);
+
+// Payment Checkout Gateway (No DB requirement check on GET to allow error states rendering, DB check on POST)
+router.get('/pay', payController.getPayPage);
+router.post('/pay/verify', db.requireDb, payController.verifyPayment);
 
 // History (Requires DB)
 router.get('/history/:userId', db.requireDb, logController.getHistory);

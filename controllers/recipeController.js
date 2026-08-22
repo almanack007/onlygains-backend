@@ -87,29 +87,31 @@ const FALLBACK_RECIPES = [
   },
   {
     id: 'rec-4',
-    title: 'Paneer Masala Butter Gravy',
-    category: 'Lunch',
-    diets: ['Vegetarian', 'High Protein', 'Clean Eating'],
-    prepTime: '15 min',
-    cookTime: '15 min',
+    title: 'Moong Dal & Vegetable Khichdi',
+    category: 'Dinner',
+    diets: ['Vegetarian', 'High Fiber', 'Clean Eating', 'Detox', 'Gluten Free'],
+    prepTime: '10 min',
+    cookTime: '20 min',
     difficulty: 'Easy',
-    cal: 480,
-    protein: 22,
-    carbs: 16,
-    fat: 34,
-    calRange: '400–500 kcal',
-    image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=800&q=80',
-    description: 'Rich and velvety Paneer Masala Butter prepared with fresh cottage cheese cubes, cashew tomato sauce, and mild Indian aromatic spices.',
+    cal: 340,
+    protein: 16,
+    carbs: 54,
+    fat: 8,
+    calRange: '300–400 kcal',
+    image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80',
+    description: 'Comforting, wholesome one-pot dish made with yellow moong dal, brown rice, aromatic spices, ghee, and mixed garden vegetables.',
     ingredients: [
-      { name: 'Fresh Paneer Cubes', amount: 180, unit: 'g' },
-      { name: 'Tomato Onion Cashew Puree', amount: 120, unit: 'g' },
-      { name: 'Butter & Desi Ghee', amount: 15, unit: 'g' },
-      { name: 'Garam Masala & Kasuri Methi', amount: 5, unit: 'g' }
+      { name: 'Yellow Moong Dal (Split)', amount: 60, unit: 'g' },
+      { name: 'Basmati / Brown Rice', amount: 60, unit: 'g' },
+      { name: 'Mixed Carrots, Peas & Cauliflower', amount: 80, unit: 'g' },
+      { name: 'Desi Ghee', amount: 8, unit: 'g' },
+      { name: 'Cumin Seeds, Hing & Turmeric', amount: 5, unit: 'g' }
     ],
     steps: [
-      'Melt butter in skillet, saute ginger garlic and tomato cashew puree until fragrant.',
-      'Add paneer cubes, cream, kasuri methi, and simmer over low heat for 5 minutes.',
-      'Garnish with fresh cilantro and serve with whole wheat naan or basmati rice.'
+      'Wash moong dal and rice thoroughly together. Soak for 15 minutes.',
+      'Heat ghee in a pressure cooker or pot, add cumin seeds, hing, and chopped ginger chilies until fragrant.',
+      'Add chopped vegetables, soaked dal, rice, turmeric, salt, and 3 cups of water.',
+      'Pressure cook for 3-4 whistles (or simmer 20 mins) until soft and creamy. Serve warm with curd.'
     ]
   },
   {
@@ -180,7 +182,7 @@ function getCalorieRange(cal) {
 }
 
 /**
- * Controller: Search & Fetch Recipes with Relevance Filter + Exact Match Generator
+ * Controller: Search & Fetch Recipes with Relevance Filter + Authentic Dish Presets
  */
 exports.searchRecipes = async (req, res) => {
   const { query, category, diet, minCal, maxCal } = req.query;
@@ -214,17 +216,13 @@ exports.searchRecipes = async (req, res) => {
         const data = await response.json();
         if (data.results && Array.isArray(data.results) && data.results.length > 0) {
           
-          // Strict Relevance Filter: Filter out random non-matching recipes (e.g. Beef burger when searching "Paneer burger")
           let matchedResults = data.results;
           if (query && query.trim()) {
             const qWords = query.toLowerCase().trim().split(/\s+/).filter(w => w.length >= 3);
-            
-            // Check if primary query keyword (e.g. 'paneer', 'kulcha', 'litti', 'soya', 'dosa') is missing in Spoonacular
             const primaryKeyword = qWords[0];
             const hasPrimaryKeywordInResults = data.results.some(r => (r.title || '').toLowerCase().includes(primaryKeyword));
 
             if (primaryKeyword && !hasPrimaryKeywordInResults) {
-              // Primary keyword was ignored by Spoonacular, force fallback generator for exact dish
               matchedResults = [];
             } else {
               matchedResults = data.results.filter(r => {
@@ -293,14 +291,13 @@ exports.searchRecipes = async (req, res) => {
     }
   }
 
-  // Fallback & Dynamic Query Matcher for Exact Dishes
+  // Fallback & Dynamic Query Matcher for Authentic Regional Dishes
   let filtered = [...FALLBACK_RECIPES];
 
   if (query && query.trim()) {
     const q = query.toLowerCase().trim();
     filtered = filtered.filter(r => r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
 
-    // Dynamic Recipe Generator for specific terms (e.g., "Paneer burger", "Kulcha", "Litti", "Biryani")
     if (filtered.length === 0) {
       let capitalized = q.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       let cal = 440;
@@ -308,7 +305,7 @@ exports.searchRecipes = async (req, res) => {
       let carbs = 34;
       let fat = 18;
       let cat = 'Lunch';
-      let img = 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80';
+      let img = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80';
       let desc = `Delicious homemade ${capitalized} prepared with fresh ingredients, balanced spices, and optimal macros for fitness goals.`;
       let ing = [
         { name: `${capitalized} Main Base`, amount: 150, unit: 'g' },
@@ -323,8 +320,26 @@ exports.searchRecipes = async (req, res) => {
         'Garnish with fresh coriander and serve hot!'
       ];
 
-      // Exact recipe presets for popular user queries
-      if (q.includes('paneer') && q.includes('burger')) {
+      // Exact recipe presets for popular regional queries
+      if (q.includes('khichdi')) {
+        capitalized = 'Moong Dal & Vegetable Khichdi';
+        cal = 340; protein = 16; carbs = 54; fat = 8; cat = 'Dinner';
+        img = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80';
+        desc = 'Comforting, wholesome one-pot dish made with yellow moong dal, brown rice, aromatic spices, ghee, and mixed garden vegetables.';
+        ing = [
+          { name: 'Yellow Moong Dal (Split)', amount: 60, unit: 'g' },
+          { name: 'Basmati / Brown Rice', amount: 60, unit: 'g' },
+          { name: 'Mixed Carrots, Peas & Cauliflower', amount: 80, unit: 'g' },
+          { name: 'Desi Ghee', amount: 8, unit: 'g' },
+          { name: 'Cumin Seeds, Hing & Turmeric', amount: 5, unit: 'g' }
+        ];
+        steps = [
+          'Wash moong dal and rice thoroughly together. Soak for 15 minutes.',
+          'Heat ghee in a pressure cooker, add cumin seeds, hing, and chopped ginger chilies until fragrant.',
+          'Add chopped vegetables, soaked dal, rice, turmeric, salt, and 3 cups of water.',
+          'Pressure cook for 3-4 whistles until soft and creamy. Serve warm with curd.'
+        ];
+      } else if (q.includes('paneer') && q.includes('burger')) {
         capitalized = 'High Protein Grilled Paneer Burger';
         cal = 440; protein = 28; carbs = 36; fat = 18; cat = 'Lunch';
         img = 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80';
@@ -345,10 +360,18 @@ exports.searchRecipes = async (req, res) => {
         capitalized = 'Paneer Masala Butter Gravy';
         cal = 480; protein = 22; carbs = 16; fat = 34; cat = 'Lunch';
         img = 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=800&q=80';
-      } else if (q.includes('chicken') && q.includes('burger')) {
-        capitalized = 'Flame-Grilled Chicken Breast Burger';
-        cal = 460; protein = 42; carbs = 32; fat = 12; cat = 'Lunch';
-        img = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80';
+      } else if (q.includes('dal') || q.includes('tadka')) {
+        capitalized = 'High Protein Yellow Dal Tadka';
+        cal = 280; protein = 18; carbs = 42; fat = 6; cat = 'Lunch';
+        img = 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80';
+      } else if (q.includes('poha')) {
+        capitalized = 'Kanda Batata Protein Poha';
+        cal = 290; protein = 12; carbs = 52; fat = 6; cat = 'Breakfast';
+        img = 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=800&q=80';
+      } else if (q.includes('biryani')) {
+        capitalized = 'Hyderabadi Dum Biryani';
+        cal = 560; protein = 34; carbs = 68; fat = 16; cat = 'Lunch';
+        img = 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80';
       }
 
       filtered.push({
@@ -357,7 +380,7 @@ exports.searchRecipes = async (req, res) => {
         category: cat,
         diets: ['High Protein', 'Clean Eating', 'Macro Balanced', 'Verified Recipe'],
         prepTime: '15 min',
-        cookTime: '12 min',
+        cookTime: '15 min',
         difficulty: 'Easy',
         cal,
         protein,

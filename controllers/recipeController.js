@@ -1,4 +1,5 @@
 const env = require('../config/env');
+const db = require('../config/db');
 
 // Curated Recipe Dataset
 const FALLBACK_RECIPES = [
@@ -336,3 +337,71 @@ exports.searchRecipes = async (req, res) => {
 
   res.json({ source: 'spoonacular_or_generator', recipes: filtered });
 };
+
+/**
+ * Controller: Get User Favorite Recipes from Database
+ */
+exports.getFavoriteRecipes = async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+  if (db.isDbAvailable() && db.getPool()) {
+    try {
+      const pool = db.getPool();
+      const result = await pool.query(
+        'SELECT recipe_id, recipe_data FROM fittrack_user_favorite_recipes WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      );
+      const recipes = result.rows.map(r => r.recipe_data);
+      return res.json({ favorites: recipes });
+    } catch (err) {
+      console.error('[Database Favorite Recipes Error]:', err);
+    }
+  }
+
+  res.json({ favorites: [] });
+};
+
+/**
+ * Controller: Toggle / Save Favorite Recipe in Database
+ */
+exports.saveFavoriteRecipe = async (req, res) => {
+  const { userId } = req.params;
+  const { recipe } = req.body;
+
+  if (!userId || !recipe || !recipe.id) {
+    return res.status(400).json({ error: 'Valid userId and recipe object required' });
+  }
+
+  if (db.isDbAvailable() && db.getPool()) {
+    try {
+      const pool = db.getPool();
+      const existing = await pool.query(
+        'SELECT recipe_id FROM fittrack_user_favorite_recipes WHERE user_id = $1 AND recipe_id = $2',
+        [userId, recipe.id]
+      );
+
+      if (existing.rows.length > 0) {
+        await pool.query(
+          'DELETE FROM fittrack_user_favorite_recipes WHERE user_id = $1 AND recipe_id = $2',
+          [userId, recipe.id]
+        );
+        return res.json({ success: true, isFavorite: false, action: 'removed' });
+      } else {
+        await pool.query(
+          `INSERT INTO fittrack_user_favorite_recipes (user_id, recipe_id, recipe_data)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, recipe_id) DO UPDATE SET recipe_data = EXCLUDED.recipe_data`,
+          [userId, recipe.id, JSON.stringify(recipe)]
+        );
+        return res.json({ success: true, isFavorite: true, action: 'saved' });
+      }
+    } catch (err) {
+      console.error('[Database Save Favorite Error]:', err);
+      return res.status(500).json({ error: 'Failed to update database favorite' });
+    }
+  }
+
+  res.json({ success: true, localOnly: true });
+};
+

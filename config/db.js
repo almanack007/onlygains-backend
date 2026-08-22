@@ -48,6 +48,14 @@ async function initDb() {
       expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS fittrack_user_favorite_recipes (
+      user_id TEXT NOT NULL,
+      recipe_id TEXT NOT NULL,
+      recipe_data JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, recipe_id)
+    );
   `);
 }
 

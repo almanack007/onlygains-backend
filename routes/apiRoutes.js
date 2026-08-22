@@ -18,8 +18,10 @@ router.get('/test-gemini', scanController.testGemini);
 router.post('/scan', scanController.scanFood);
 router.post('/coach/chat', scanController.chatCoach);
 
-// Spoonacular Recipe API Endpoint
+// Spoonacular & Favorite Recipe API Endpoints
 router.get('/recipes/search', recipeController.searchRecipes);
+router.get('/recipes/favorites/:userId', recipeController.getFavoriteRecipes);
+router.post('/recipes/favorites/:userId', recipeController.saveFavoriteRecipe);
 
 // Daily Logs (Requires DB)
 router.get('/daily/:userId/:date', db.requireDb, logController.getDailyLog);

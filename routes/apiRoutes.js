@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../config/db');
 const systemController = require('../controllers/systemController');
 const scanController = require('../controllers/scanController');
+const recipeController = require('../controllers/recipeController');
 const logController = require('../controllers/logController');
 const userController = require('../controllers/userController');
 const payController = require('../controllers/payController');
@@ -16,6 +17,9 @@ router.get('/config', systemController.getConfig);
 router.get('/test-gemini', scanController.testGemini);
 router.post('/scan', scanController.scanFood);
 router.post('/coach/chat', scanController.chatCoach);
+
+// Spoonacular Recipe API Endpoint
+router.get('/recipes/search', recipeController.searchRecipes);
 
 // Daily Logs (Requires DB)
 router.get('/daily/:userId/:date', db.requireDb, logController.getDailyLog);

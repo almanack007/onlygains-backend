@@ -31,6 +31,7 @@ module.exports = {
   PORT: process.env.PORT || 3000,
   DATABASE_URL: process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5432/fittrack',
   GEMINI_API_KEY: (process.env.GEMINI_API_KEY || '').trim(),
+  SPOONACULAR_API_KEY: (process.env.SPOONACULAR_API_KEY || '').trim(),
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || null,
   PGSSLMODE: process.env.PGSSLMODE
 };
